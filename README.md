@@ -33,7 +33,7 @@ To use TTS Server in your project, follow these steps:
 
 1. Ensure that the TTS Server application is installed and running on your Android device.
 
-2. Send HTTP GET requests to the server endpoint `http://<your_device_ip>:<port>` with the text you want to convert to speech.
+2. Send requests to the server endpoint `http://<your_device_ip>:<port>` with the text you want to convert to speech.
 
 3. The server will respond with the synthesized speech audio.
 
