@@ -17,8 +17,11 @@ import java.net.URLDecoder
 import java.util.Locale
 import kotlin.concurrent.thread
 import android.speech.tts.UtteranceProgressListener
+import android.widget.TextView
 import android.widget.Toast
-
+import java.net.NetworkInterface
+import java.net.SocketException
+import java.net.Inet4Address
 
 class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var tts: TextToSpeech
@@ -35,6 +38,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
 
         val portEditText = findViewById<EditText>(R.id.port)
         val saveButton = findViewById<Button>(R.id.save)
+        val urlText = findViewById<TextView>(R.id.url)
 
         val savedPort = sharedPreferences.getInt("port", 35248)
         portEditText.setText(savedPort.toString())
@@ -44,12 +48,13 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             if (port != null && port > 1024 && port < 65535) {
                 sharedPreferences.edit().putInt("port", port).apply()
                 restartServer(port)
+                urlText.setText("http://"+getIPAddress()+":"+port)
                 Toast.makeText(this, "Port updated and server restarted", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Invalid port number", Toast.LENGTH_SHORT).show()
             }
         }
-
+        urlText.setText("http://"+getIPAddress()+":"+savedPort)
         startServer(savedPort)
     }
 
@@ -85,7 +90,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 val requestLine = reader.readLine()
                 if (requestLine != null && requestLine.startsWith("GET")) {
                     val params = requestLine.split(" ")[1].split("?").getOrNull(1)
-                    if (params != null && params.startsWith("text=")) {
+                    if (params != null && (params.startsWith("text=") || params.startsWith("locale="))) {
                         val encodedText = params.substring(5)
                         val text = parseTextParameter(params)
                         val locale = parseLocaleParameter(params)
@@ -95,9 +100,9 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                             Thread.sleep(100)
                         }
 
-                        sendResponse(clientSocket, audioData)
+                        sendAudioResponse(clientSocket, audioData)
                     } else {
-                        sendErrorResponse(clientSocket, 400, "Bad Request")
+                        sendWebResponse(clientSocket)
                     }
                 } else {
                     sendErrorResponse(clientSocket, 400, "Bad Request")
@@ -127,8 +132,37 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         } ?: Locale.getDefault()
     }
 
+    private fun sendWebResponse(clientSocket: Socket) {
+        try {
+            val output = clientSocket.getOutputStream()
+            val writer = BufferedWriter(OutputStreamWriter(output))
 
-    private fun sendResponse(clientSocket: Socket, audioData: ByteArray) {
+            val htmlContent = """
+            <!DOCTYPE html>
+            <html>
+            <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+            <body><div align="center"><form action="?">
+                <p><input name="locale" placeholder="language..."></p>
+                <p><textarea name="text" placeholder="text to speech..." cols="40" rows="5"></textarea></p>
+                <p><input type="submit"></p>
+            </div></form></body>
+            </html>
+        """.trimIndent()
+
+            writer.write("HTTP/1.1 200 OK\r\n")
+            writer.write("Content-Type: text/html\r\n")
+            writer.write("Content-Length: ${htmlContent.toByteArray().size}\r\n")
+            writer.write("\r\n")
+            writer.write(htmlContent)
+            writer.flush()
+        } catch (e: IOException) {
+            Log.e("MainActivity", "Error sending response", e)
+        } finally {
+            clientSocket.close()
+        }
+    }
+
+    private fun sendAudioResponse(clientSocket: Socket, audioData: ByteArray) {
         try {
             val output = clientSocket.getOutputStream()
             val writer = BufferedWriter(OutputStreamWriter(output))
@@ -220,4 +254,24 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         tts.synthesizeToFile(text, params, audioFile.absolutePath)
         return ByteArray(0)
     }
+
+    private fun getIPAddress(): String? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val address = addresses.nextElement()
+                    if (!address.isLoopbackAddress && address is Inet4Address) {
+                        return address.hostAddress
+                    }
+                }
+            }
+        } catch (ex: SocketException) {
+            ex.printStackTrace()
+        }
+        return null
+    }
+
 }

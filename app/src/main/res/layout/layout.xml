@@ -34,5 +34,13 @@
         android:layout_marginTop="16dp"
         android:text="Save" />
 
+    <TextView
+        android:id="@+id/url"
+        android:layout_width="match_parent"
+        android:autoLink="web"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>
