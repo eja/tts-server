@@ -90,16 +90,18 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 val requestLine = reader.readLine()
                 if (requestLine != null && requestLine.startsWith("GET")) {
                     val params = requestLine.split(" ")[1].split("?").getOrNull(1)
-                    if (params != null && (params.startsWith("text=") || params.startsWith("locale="))) {
-                        val encodedText = params.substring(5)
+                    if (params != null) {
                         val text = parseTextParameter(params)
                         val locale = parseLocaleParameter(params)
-                        val synthesizeTextToAudio = synthesizeTextToAudio(text, locale)
 
-                        while (!synthesisDone) {
-                            Thread.sleep(100)
+                        if (text != "") {
+                            synthesizeTextToAudio(text, locale)
+                            while (!synthesisDone) {
+                                Thread.sleep(100)
+                            }
+                        } else {
+                            sendErrorResponse(clientSocket, 400, "Bad Request")
                         }
-
                         sendAudioResponse(clientSocket, audioData)
                     } else {
                         sendWebResponse(clientSocket)
