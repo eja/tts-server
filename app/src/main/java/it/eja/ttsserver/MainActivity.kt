@@ -257,7 +257,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         return ByteArray(0)
     }
 
-    private fun getIPAddress(): String? {
+    private fun getIPAddress(): String {
+        var ip: String =""
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
@@ -265,15 +266,17 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 val addresses = networkInterface.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val address = addresses.nextElement()
-                    if (!address.isLoopbackAddress && address is Inet4Address) {
-                        return address.hostAddress
+                    if (address is Inet4Address) {
+                        if (ip == "" || ! address.isLoopbackAddress) {
+                            ip = address.hostAddress.toString()
+                        }
                     }
                 }
             }
         } catch (ex: SocketException) {
             ex.printStackTrace()
         }
-        return null
+        return ip
     }
 
 }
