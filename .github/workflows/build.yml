@@ -35,6 +35,10 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
+      - name: Show artifacts
+        run: |
+          find app
+
       - name: Build APK
         run: |
           ./gradlew clean
@@ -51,10 +55,6 @@ jobs:
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
-          
-      - name: Show artifacts
-        run: |
-          find app
 
       - name: Rename
         run: |
