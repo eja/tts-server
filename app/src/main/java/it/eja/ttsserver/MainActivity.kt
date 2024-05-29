@@ -22,6 +22,7 @@ import android.widget.Toast
 import java.net.NetworkInterface
 import java.net.SocketException
 import java.net.Inet4Address
+import org.json.JSONObject
 
 class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private lateinit var tts: TextToSpeech
@@ -88,21 +89,56 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             try {
                 val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
                 val requestLine = reader.readLine()
-                if (requestLine != null && requestLine.startsWith("GET")) {
+                if (requestLine != null && requestLine.startsWith("POST")) {
+                    var contentType = ""
+                    var contentLength = 0
+                    while (true) {
+                        val line = reader.readLine() ?: break
+                        if (line.isEmpty()) {
+                            break
+                        }
+                        val header = line.split(": ", limit = 2)
+                        if (header.size == 2) {
+                            when (header[0].lowercase()) {
+                                "content-length" -> contentLength = header[1].trim().toInt()
+                                "content-type" -> contentType = header[1].trim().lowercase()
+                            }
+                        }
+                    }
+
+                    if (contentType == "application/json") {
+                        val requestBody = readRequestBody(reader, contentLength)
+                        val json = JSONObject(requestBody)
+                        val text = json.optString("text", "")
+                        val locale = parseLocale(json.optString("locale", ""))
+
+                        if (text.isNotEmpty()) {
+                            synthesizeTextToAudio(text, locale)
+                            while (!synthesisDone) {
+                                Thread.sleep(100)
+                            }
+                            sendAudioResponse(clientSocket, audioData)
+                        } else {
+                            sendErrorResponse(clientSocket, 400, "Bad Request")
+                        }
+                    } else {
+                        sendErrorResponse(clientSocket, 415, "Unsupported Media Type")
+                    }
+                } else if (requestLine != null && requestLine.startsWith("GET")) {
                     val params = requestLine.split(" ")[1].split("?").getOrNull(1)
                     if (params != null) {
                         val text = parseTextParameter(params)
                         val locale = parseLocaleParameter(params)
 
-                        if (text != "") {
+                        if (text.isNotEmpty()) {
                             synthesizeTextToAudio(text, locale)
                             while (!synthesisDone) {
                                 Thread.sleep(100)
                             }
+                            sendAudioResponse(clientSocket, audioData)
                         } else {
                             sendErrorResponse(clientSocket, 400, "Bad Request")
                         }
-                        sendAudioResponse(clientSocket, audioData)
                     } else {
                         sendWebResponse(clientSocket)
                     }
@@ -117,10 +153,31 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun parseTextParameter(params: String): String? {
+
+    private fun getContentLength(reader: BufferedReader): Int {
+        var contentLength = 0
+        while (true) {
+            val line = reader.readLine() ?: break
+            if (line.startsWith("Content-Length:")) {
+                contentLength = line.substringAfter("Content-Length:").trim().toInt()
+            }
+            if (line.isEmpty()) {
+                break
+            }
+        }
+        return contentLength
+    }
+
+    private fun readRequestBody(reader: BufferedReader, contentLength: Int): String {
+        val charArray = CharArray(contentLength)
+        reader.read(charArray, 0, contentLength)
+        return String(charArray)
+    }
+
+    private fun parseTextParameter(params: String): String {
         return params.split("&").find { it.startsWith("text=") }?.substringAfter("text=")?.let {
             URLDecoder.decode(it, "UTF-8")
-        }
+        } ?: ""
     }
 
     private fun parseLocaleParameter(params: String): Locale {
@@ -134,22 +191,31 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         } ?: Locale.getDefault()
     }
 
+    private fun parseLocale(localeCode: String): Locale {
+        val parts = localeCode.split("_")
+        return if (parts.size == 2) {
+            Locale(parts[0], parts[1])
+        } else {
+            Locale(localeCode)
+        }
+    }
+
     private fun sendWebResponse(clientSocket: Socket) {
         try {
             val output = clientSocket.getOutputStream()
             val writer = BufferedWriter(OutputStreamWriter(output))
 
             val htmlContent = """
-            <!DOCTYPE html>
-            <html>
-            <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-            <body><div align="center"><form action="?">
-                <p><input name="locale" placeholder="language..."></p>
-                <p><textarea name="text" placeholder="text to speech..." cols="40" rows="5"></textarea></p>
-                <p><input type="submit"></p>
-            </div></form></body>
-            </html>
-        """.trimIndent()
+                <!DOCTYPE html>
+                <html>
+                <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body><div align="center"><form action="?">
+                    <p><input name="locale" placeholder="language..."></p>
+                    <p><textarea name="text" placeholder="text to speech..." cols="40" rows="5"></textarea></p>
+                    <p><input type="submit"></p>
+                </div></form></body>
+                </html>
+            """.trimIndent()
 
             writer.write("HTTP/1.1 200 OK\r\n")
             writer.write("Content-Type: text/html\r\n")
@@ -213,7 +279,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private var synthesisDone = false
     private var audioData = ByteArray(0)
 
-    private fun synthesizeTextToAudio(text: String?, locale: Locale): ByteArray {
+    private fun synthesizeTextToAudio(text: String, locale: Locale): ByteArray {
         val audioFile = File.createTempFile("tts_", ".wav", cacheDir)
         val params = HashMap<String, String>()
 
@@ -258,7 +324,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun getIPAddress(): String {
-        var ip: String =""
+        var ip: String = ""
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
@@ -267,7 +333,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 while (addresses.hasMoreElements()) {
                     val address = addresses.nextElement()
                     if (address is Inet4Address) {
-                        if (ip == "" || ! address.isLoopbackAddress) {
+                        if (ip == "" || !address.isLoopbackAddress) {
                             ip = address.hostAddress.toString()
                         }
                     }
@@ -278,5 +344,5 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         }
         return ip
     }
-
 }
+
