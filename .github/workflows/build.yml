@@ -54,7 +54,7 @@ jobs:
           
       - name: Show artifacts
         run: |
-          find app | grep aab
+          find app
 
       - name: Rename
         run: |
