@@ -35,9 +35,9 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Show artifacts
+      - name: Copy
         run: |
-          find app
+          cp app/build/outputs/bundle/release/app-release.aab eja-surf.aab
 
       - name: Build APK
         run: |
@@ -56,14 +56,15 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Rename
+      - name: Copy
         run: |
-          mv app/build/outputs/apk/release/app-release-unsigned-signed.apk eja-surf.apk
+          cp app/build/outputs/apk/release/app-release-unsigned-signed.apk eja-surf.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             eja-surf.apk
+            eja-surf.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
