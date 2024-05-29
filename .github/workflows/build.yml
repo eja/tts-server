@@ -18,32 +18,53 @@ jobs:
         with:
           java-version: '17'
 
-      - name: Build    
+      - name: Build AAB
         run: |
-          ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          ./gradlew clean
+          ./gradlew bundleRelease --no-daemon --warning-mode all
 
-      - name: Sign APK
+      - name: Sign AAB
+        id: sign_app_aab
         uses: r0adkll/sign-android-release@v1
-        id: sign_app
         with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
-          alias: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          releaseDirectory: android/app/build/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "34.0.0"
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
 
-      - name: Rename
+      - name: Build APK
         run: |
-          mv app/build/outputs/apk/release/app-release-unsigned-signed.apk tts-server.apk
-          mv app/build/outputs/apk/release/app-release-unsigned-signed.aab tts-server.aab
-      
-      - name: Release
-        uses: softprops/action-gh-release@v1
+          ./gradlew clean
+          ./gradlew assembleRelease --no-daemon --warning-mode all
+
+      - name: Sign APK
+        id: sign_app_apk
+        uses: r0adkll/sign-android-release@v1
         with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
+          
+      - name: Show artifacts
+        run: |
+          ls android/app/build/outputs/apk/release/
+          ls android/app/build/outputs/bundle/release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: true
+          generate_release_notes: true
           files: |
-            tts-server.apk
+            android/app/build/outputs/apk/release/app-release-signed.apk
+            android/app/build/outputs/bundle/release/app-release.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
