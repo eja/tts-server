@@ -37,7 +37,7 @@ jobs:
 
       - name: Copy
         run: |
-          cp app/build/outputs/bundle/release/app-release.aab eja-surf.aab
+          cp app/build/outputs/bundle/release/app-release.aab app-release.aab
 
       - name: Build APK
         run: |
@@ -58,13 +58,13 @@ jobs:
 
       - name: Copy
         run: |
-          cp app/build/outputs/apk/release/app-release-unsigned-signed.apk eja-surf.apk
+          cp app/build/outputs/apk/release/app-release-unsigned-signed.apk app-release.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            eja-surf.apk
-            eja-surf.aab
+            app-release.apk
+            app-release.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
