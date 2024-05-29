@@ -54,20 +54,16 @@ jobs:
           
       - name: Show artifacts
         run: |
-          ls app/build/outputs/apk/release/
-          ls app/build/outputs
-          ls app
+          find app | grep aab
 
       - name: Rename
         run: |
           mv app/build/outputs/apk/release/app-release-unsigned-signed.apk eja-surf.apk
-          mv app/build/outputs/bundle/release/app-release.aab eja-surf.aab
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             eja-surf.apk
-            eja-surf.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
