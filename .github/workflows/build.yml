@@ -55,7 +55,7 @@ jobs:
       - name: Show artifacts
         run: |
           ls app/build/outputs/apk/release/
-          ls app/build/outputs/bundle/release/
+          ls app/build/outputs
 
       - name: Rename
         run: |
