@@ -33,7 +33,7 @@ jobs:
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
+          BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Build APK
         run: |
@@ -57,14 +57,16 @@ jobs:
           ls app/build/outputs/apk/release/
           ls app/build/outputs/bundle/release/
 
+      - name: Rename
+        run: |
+          mv app/build/outputs/apk/release/app-release-unsigned-signed.apk eja-surf.apk
+          mv app/build/outputs/bundle/release/app-release.aab eja-surf.aab
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          draft: true
-          generate_release_notes: true
           files: |
-            app/build/outputs/apk/release/app-release-signed.apk
-            app/build/outputs/bundle/release/app-release.aab
+            eja-surf.apk
+            eja-surf.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
