@@ -21,6 +21,7 @@ jobs:
       - name: Build    
         run: |
           ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
@@ -37,6 +38,7 @@ jobs:
       - name: Rename
         run: |
           mv app/build/outputs/apk/release/app-release-unsigned-signed.apk tts-server.apk
+          mv app/build/outputs/apk/release/app-release-unsigned-signed.aab tts-server.aab
       
       - name: Release
         uses: softprops/action-gh-release@v1
