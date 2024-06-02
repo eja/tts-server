@@ -9,6 +9,8 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+		env:
+			APP_NAME: ${{ github.repository_owner }}_${{ github.repository }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -37,7 +39,7 @@ jobs:
 
       - name: Copy
         run: |
-          cp app/build/outputs/bundle/release/app-release.aab app-release.aab
+          cp app/build/outputs/bundle/release/app-release.aab ${{ env.APP_NAME }}.aab
 
       - name: Build APK
         run: |
@@ -58,13 +60,13 @@ jobs:
 
       - name: Copy
         run: |
-          cp app/build/outputs/apk/release/app-release-unsigned-signed.apk app-release.apk
+          cp app/build/outputs/apk/release/app-release-unsigned-signed.apk ${{ env.APP_NAME }}.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            app-release.apk
-            app-release.aab
+            ${{ env.APP_NAME }}.apk
+            ${{ env.APP_NAME }}.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
