@@ -32,7 +32,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.layout)
+        setContentView(R.layout.main_activity)
 
         tts = TextToSpeech(this, this)
         sharedPreferences = getSharedPreferences("TTS_SERVER_PREFS", Context.MODE_PRIVATE)
@@ -49,13 +49,13 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             if (port != null && port > 1024 && port < 65535) {
                 sharedPreferences.edit().putInt("port", port).apply()
                 restartServer(port)
-                urlText.setText("http://"+getIPAddress()+":"+port)
+                urlText.setText("http://" + getIPAddress() + ":" + port)
                 Toast.makeText(this, "Port updated and server restarted", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Invalid port number", Toast.LENGTH_SHORT).show()
             }
         }
-        urlText.setText("http://"+getIPAddress()+":"+savedPort)
+        urlText.setText("http://" + getIPAddress() + ":" + savedPort)
         startServer(savedPort)
     }
 
@@ -181,14 +181,15 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun parseLocaleParameter(params: String): Locale {
-        return params.split("&").find { it.startsWith("locale=") }?.substringAfter("locale=")?.let { localeCode ->
-            val parts = localeCode.split("_")
-            if (parts.size == 2) {
-                Locale(parts[0], parts[1])
-            } else {
-                Locale(localeCode)
-            }
-        } ?: Locale.getDefault()
+        return params.split("&").find { it.startsWith("locale=") }?.substringAfter("locale=")
+            ?.let { localeCode ->
+                val parts = localeCode.split("_")
+                if (parts.size == 2) {
+                    Locale(parts[0], parts[1])
+                } else {
+                    Locale(localeCode)
+                }
+            } ?: Locale.getDefault()
     }
 
     private fun parseLocale(localeCode: String): Locale {
@@ -345,4 +346,3 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         return ip
     }
 }
-
