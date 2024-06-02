@@ -11,8 +11,8 @@ android {
         applicationId = "it.eja.ttsserver"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.5.29"
+        versionCode = 4
+        versionName = "1.6.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
