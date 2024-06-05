@@ -109,9 +109,12 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                     if (contentType == "application/json") {
                         val requestBody = readRequestBody(reader, contentLength)
                         val json = JSONObject(requestBody)
-                        val text = json.optString("text", "")
+                        var text = json.optString("text", "")
                         val locale = parseLocale(json.optString("locale", ""))
-
+                        val input = json.optString("input", "")
+                        if (input.isNotEmpty()) {
+                            text = input
+                        }
                         if (text.isNotEmpty()) {
                             synthesizeTextToAudio(text, locale)
                             while (!synthesisDone) {
@@ -151,21 +154,6 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
                 clientSocket.close()
             }
         }
-    }
-
-
-    private fun getContentLength(reader: BufferedReader): Int {
-        var contentLength = 0
-        while (true) {
-            val line = reader.readLine() ?: break
-            if (line.startsWith("Content-Length:")) {
-                contentLength = line.substringAfter("Content-Length:").trim().toInt()
-            }
-            if (line.isEmpty()) {
-                break
-            }
-        }
-        return contentLength
     }
 
     private fun readRequestBody(reader: BufferedReader, contentLength: Int): String {
